@@ -1,0 +1,13 @@
+import express from "express";
+import cors from "cors";
+import "dotenv/config";
+import ticketRoutes from "./routes/ticketRoutes.js";
+import agentRoutes from "./routes/agentRoutes.js";
+import dashboardRoutes from "./routes/dashboardRoutes.js";
+import { errorHandler } from "./middleware/errorHandler.js";
+const app=express();
+app.use(cors());app.use(express.json({limit:"1mb"}));
+app.get("/api/health",(_req,res)=>res.json({status:"ok"}));
+app.use("/api/tickets",ticketRoutes);app.use("/api/agents",agentRoutes);app.use("/api/dashboard",dashboardRoutes);
+app.use((_req,res)=>res.status(404).json({message:"Route not found"}));app.use(errorHandler);
+const port=Number(process.env.PORT??4000);app.listen(port,()=>console.log(`SupportDesk API running on http://localhost:${port}`));

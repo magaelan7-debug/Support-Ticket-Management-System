@@ -1,0 +1,4 @@
+{
+  "name":"support-ticket-backend","private":true,"version":"1.0.0","scripts":{"dev":"tsx watch src/server.ts","build":"tsc","start":"node dist/server.js"},
+  "dependencies":{"cors":"^2.8.5","dotenv":"^17.2.2","express":"^5.1.0","mysql2":"^3.14.3"},"devDependencies":{"@types/cors":"^2.8.19","@types/express":"^5.0.3","@types/node":"^22.15.0","tsx":"^4.20.5","typescript":"^5.8.3"}
+}

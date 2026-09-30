@@ -1,0 +1,20 @@
+import type { Request, Response } from "express";
+import * as repo from "../repositories/ticketRepository.js";
+import { isCategory,isPriority,isStatus,validateTicketInput } from "../utils/validation.js";
+import type { Category, Priority, TicketInput } from "../types/index.js";
+function idOf(req:Request){const id=Number(req.params.id);if(!Number.isInteger(id)||id<=0)throw Object.assign(new Error("Invalid ticket ID"),{statusCode:400});return id}
+export async function list(req:Request,res:Response){const page=Math.max(1,Number(req.query.page??1)||1);const limit=Math.min(50,Math.max(1,Number(req.query.limit??10)||10));const status=typeof req.query.status==="string"&&isStatus(req.query.status)?req.query.status:undefined;const priority=typeof req.query.priority==="string"&&isPriority(req.query.priority)?req.query.priority:undefined;const category=typeof req.query.category==="string"&&isCategory(req.query.category)?req.query.category:undefined;const agentId=req.query.agent_id?Number(req.query.agent_id):undefined;if(req.query.status&&!status||req.query.priority&&!priority||req.query.category&&!category||(req.query.agent_id&&(!agentId||agentId<=0)))return res.status(400).json({message:"Invalid filter value"});res.json(await repo.listTickets({page,limit,search:typeof req.query.search==="string"?req.query.search.trim():undefined,status,priority,category,agentId,sort:typeof req.query.sort==="string"?req.query.sort:undefined}))}
+export async function get(req:Request,res:Response){const ticket=await repo.getTicket(idOf(req));if(!ticket)return res.status(404).json({message:"Ticket not found"});res.json(ticket)}
+export async function create(req:Request,res:Response){const errors=validateTicketInput(req.body as Partial<TicketInput>);if(errors.length)return res.status(400).json({message:errors.join("; ")});res.status(201).json(await repo.createTicket(req.body))}
+export async function update(req:Request,res:Response){const id=idOf(req);const body=req.body as Record<string,unknown>;const data:{subject?:string;description?:string;priority?:Priority;category?:Category}={};if(body.subject!==undefined)data.subject=String(body.subject);if(body.description!==undefined)data.description=String(body.description);if(body.priority!==undefined){if(typeof body.priority!=="string"||!isPriority(body.priority))return res.status(400).json({message:"Invalid priority"});data.priority=body.priority}if(body.category!==undefined){if(typeof body.category!=="string"||!isCategory(body.category))return res.status(400).json({message:"Invalid category"});data.category=body.category}if(data.description!==undefined&&data.description.trim().length<10)return res.status(400).json({message:"Description must contain at least 10 characters"});const t=await repo.updateTicket(id,data);if(!t)return res.status(404).json({message:"Ticket not found"});res.json(t)}
+export async function remove(req:Request,res:Response){if(!await repo.deleteTicket(idOf(req)))return res.status(404).json({message:"Ticket not found"});res.json({message:"Ticket deleted"})}
+export async function assign(req:Request,res:Response){const id=idOf(req);const raw=req.body?.agent_id;if(raw!==null&&raw!==undefined&&(!Number.isInteger(Number(raw))||Number(raw)<=0))return res.status(400).json({message:"Invalid agent ID"});const t=await repo.assignTicket(id,raw===null||raw===undefined?null:Number(raw));if(!t)return res.status(404).json({message:"Ticket not found"});res.json(t)}
+export async function status(req:Request,res:Response){
+  const id=idOf(req);
+  if(typeof req.body?.status!=="string"||!isStatus(req.body.status))return res.status(400).json({message:"Invalid status"});
+  const current=await repo.getTicket(id);
+  if(!current)return res.status(404).json({message:"Ticket not found"});
+  const allowed:Record<string, string[]>={OPEN:["IN_PROGRESS","CLOSED"],IN_PROGRESS:["RESOLVED","CLOSED"],RESOLVED:["CLOSED"],CLOSED:[]};
+  if(!allowed[current.status]?.includes(req.body.status))return res.status(400).json({message:`Cannot change status from ${current.status} to ${req.body.status}`});
+  const t=await repo.updateStatus(id,req.body.status);res.json(t);
+}
