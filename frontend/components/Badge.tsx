@@ -1,0 +1,3 @@
+import type { Priority, Status } from "@/types";
+export function StatusBadge({value}:{value:Status}){const map:Record<Status,string>={OPEN:"bg-blue-50 text-blue-700",IN_PROGRESS:"bg-amber-50 text-amber-700",RESOLVED:"bg-emerald-50 text-emerald-700",CLOSED:"bg-slate-100 text-slate-600"};return <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${map[value]}`}>{value.replace("_"," ")}</span>}
+export function PriorityBadge({value}:{value:Priority}){const map:Record<Priority,string>={LOW:"bg-slate-100 text-slate-600",MEDIUM:"bg-blue-50 text-blue-700",HIGH:"bg-orange-50 text-orange-700",CRITICAL:"bg-red-50 text-red-700"};return <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${map[value]}`}>{value}</span>}
